@@ -1,0 +1,348 @@
+// RetroBot zaman makinesi sohbet ekrani
+
+const sohbet = document.getElementById("sohbet");
+const form = document.getElementById("form");
+const mesajKutusu = document.getElementById("mesaj");
+const gonderDugmesi = document.getElementById("gonder");
+const sifirlaDugmesi = document.getElementById("sifirla");
+const yilSecici = document.getElementById("yil-secici");
+const pencereYazi = document.getElementById("pencere-yazi");
+
+const ILK_YIL = 1990;
+const SIMDIKI_YIL = 2026;
+const GELECEK_YIL = 2035;
+
+function guvenliOku(anahtar, varsayilan) {
+  try { return localStorage.getItem(anahtar) || varsayilan; } catch (e) { return varsayilan; }
+}
+function guvenliYaz(anahtar, deger) {
+  try { localStorage.setItem(anahtar, deger); } catch (e) {}
+}
+
+// Secilen yila gore gorunum (tema), bot adi ve yazilar
+function donemBilgisi(yil) {
+  if (yil < 2000) {
+    return {
+      tema: "retro",
+      botAdi: "RetroBot",
+      sayfaBasligi: "~*~ RetroBot'un Ana Sayfasi ~*~",
+      pencere: "💾 RetroBot Sohbet Odasi - 56k modem ile bagli",
+      placeholder: "Mesajini yaz ve ENTER'a bas...",
+      gonder: "Gonder",
+      yaziyor: "RetroBot yaziyor...",
+      karsilama: [
+        ["sistem", "", "*** Modem baglaniyor... ciiiiiiiit... kssshhhhh... ***"],
+        ["sistem", "", "*** Baglanti kuruldu: 56.000 bps ***"],
+        ["bot", "RetroBot", "Selaaam! " + yil + " yilindan selamlar! Sohbet odama hos geldin!"],
+      ],
+    };
+  }
+  if (yil < 2013) {
+    return {
+      tema: "web2",
+      botAdi: "WebBot 2.0",
+      sayfaBasligi: "WebBot 2.0 · " + yil,
+      altBaslik: "Sosyal sohbet deneyimi · " + yil,
+      altBilgi: "Geniş bant bağlantı aktif · RSS'e abone ol!",
+      pencere: "💬 WebBot 2.0 ile sohbet",
+      placeholder: "Bir mesaj yaz...",
+      gonder: "Gönder",
+      yaziyor: "WebBot 2.0 yazıyor...",
+      karsilama: [
+        ["sistem", "", "ADSL bağlantısı kuruldu · " + yil],
+        ["bot", "WebBot 2.0", "Selam! " + yil + " yılına hoş geldin. Neler yapıyorsun?"],
+      ],
+    };
+  }
+  const gelecek = yil === GELECEK_YIL;
+  return {
+    tema: "modern",
+    botAdi: "NovaBot",
+    sayfaBasligi: "NovaBot · " + yil,
+    altBaslik: (gelecek ? "Kişisel yapay zekâ asistanın · " : "Yapay zekâ asistanın · ") + yil,
+    altBilgi: gelecek ? "Uçtan uca şifreli · Nöral bağlantı aktif" : "Uçtan uca şifreli · Bulut bağlantısı aktif",
+    pencere: gelecek ? "● Nöral bağlantı aktif" : "● Çevrimiçi",
+    placeholder: "NovaBot'a bir şey sor...",
+    gonder: "Gönder",
+    yaziyor: "NovaBot düşünüyor…",
+    karsilama: [
+      ["sistem", "", "Zaman senkronizasyonu tamamlandı · " + yil],
+      ["bot", "NovaBot", "Merhaba! Ben NovaBot. Bugün sana nasıl yardımcı olabilirim?"],
+    ],
+  };
+}
+
+// Yil secicisini doldur: 1990 - 2026 ve gelecek
+for (let y = ILK_YIL; y <= SIMDIKI_YIL; y++) {
+  const secenek = document.createElement("option");
+  secenek.value = String(y);
+  secenek.textContent = y === SIMDIKI_YIL ? y + " (bugün)" : String(y);
+  yilSecici.appendChild(secenek);
+}
+const gelecekSecenek = document.createElement("option");
+gelecekSecenek.value = String(GELECEK_YIL);
+gelecekSecenek.textContent = GELECEK_YIL + " (gelecek 🚀)";
+yilSecici.appendChild(gelecekSecenek);
+
+let yil = parseInt(guvenliOku("retrobot_yil", "1997"), 10);
+if (!(yil >= ILK_YIL && yil <= SIMDIKI_YIL) && yil !== GELECEK_YIL) yil = 1997;
+yilSecici.value = String(yil);
+
+// Her tarayici kendi oturumunu kullansin
+let oturumId = guvenliOku("retrobot_oturum", "");
+if (!oturumId) {
+  oturumId = "oturum-" + Math.random().toString(36).slice(2, 10);
+  guvenliYaz("retrobot_oturum", oturumId);
+}
+
+function satirEkle(tur, kim, metin) {
+  const p = document.createElement("p");
+  p.className = "satir " + tur;
+  if (kim) {
+    const b = document.createElement("span");
+    b.className = "kim";
+    b.textContent = kim + ": ";
+    p.appendChild(b);
+  }
+  p.appendChild(document.createTextNode(metin));
+  sohbet.appendChild(p);
+  sohbet.scrollTop = sohbet.scrollHeight;
+  return p;
+}
+
+function karsilama() {
+  sohbet.innerHTML = "";
+  donemBilgisi(yil).karsilama.forEach(([tur, kim, metin]) => satirEkle(tur, kim, metin));
+}
+
+// Yila gore yazi tipi
+function yaziTipi(yil) {
+  if (yil <= 1993) return { ad: "terminal", aciklama: "VT323 · DOS ekranı" };
+  if (yil <= 1996) return { ad: "piksel", aciklama: "Pixelify Sans · piksel ekran yazısı" };
+  if (yil <= 1999) return { ad: "klasik", aciklama: "Comic Sans & Times · 90'ların sonu" };
+  if (yil <= 2006) return { ad: "verdana", aciklama: "Verdana & Tahoma · 2000'lerin başı" };
+  if (yil <= 2012) return { ad: "trebuchet", aciklama: "Trebuchet MS · Web 2.0" };
+  if (yil <= 2019) return { ad: "roboto", aciklama: "Roboto · düz tasarım dönemi" };
+  if (yil <= SIMDIKI_YIL) return { ad: "inter", aciklama: "Inter · günümüz" };
+  return { ad: "gelecek", aciklama: "Orbitron & Space Grotesk · gelecek" };
+}
+
+// Sol paneldeki yil bilgilerini doldur
+function bolumEkle(kap, baslik, maddeler) {
+  if (!maddeler.length) return;
+  const h = document.createElement("h3");
+  h.className = "bilgi-bolum";
+  h.textContent = baslik;
+  kap.appendChild(h);
+  const ul = document.createElement("ul");
+  ul.className = "bilgi-listesi";
+  maddeler.forEach((m) => {
+    const li = document.createElement("li");
+    li.textContent = m;
+    ul.appendChild(li);
+  });
+  kap.appendChild(ul);
+}
+
+function bilgileriGoster() {
+  const baslik = document.getElementById("bilgi-baslik");
+  const kap = document.getElementById("bilgi-icerik");
+  baslik.textContent = yil === GELECEK_YIL ? "📅 " + yil + " (hayal)" : "📅 " + yil;
+  kap.innerHTML = "";
+
+  const veri = OLAYLAR[yil] || { olaylar: [], yenilikler: [], oduller: {} };
+  bolumEkle(kap, "📰 Neler oldu?", veri.olaylar || []);
+  bolumEkle(kap, "💡 Yenilikler ve icatlar", veri.yenilikler || []);
+
+  const o = veri.oduller || {};
+  const odul = [];
+  if (o.film) odul.push("🎬 Film: " + o.film + " (Oscar, En İyi Film)");
+  if (o.dizi) odul.push("📺 Dizi: " + o.dizi + " (Emmy, En İyi Drama)");
+  if (o.kitap) odul.push("📚 Kitap: " + o.kitap + " (Booker Ödülü)");
+  if (o.nobel) odul.push("🖋️ Nobel Edebiyat: " + o.nobel);
+  bolumEkle(kap, "🏆 Ödül alan eserler", odul);
+
+  const arkaPlanAdi = arkaPlanUygula(yil, donemBilgisi(yil).tema);
+  document.getElementById("yazi-tipi-notu").textContent =
+    "🔤 Yazı tipi: " + yaziTipi(yil).aciklama + "\n🎨 Arka plan: " + arkaPlanAdi;
+}
+
+// ======================= MP3 CALAR =======================
+const calarSes = document.getElementById("calar-ses");
+const calarBaslik = document.getElementById("calar-baslik");
+const calarListe = document.getElementById("calar-liste");
+const calarOynat = document.getElementById("calar-oynat");
+const calarIlerleme = document.getElementById("calar-ilerleme");
+const calarSure = document.getElementById("calar-sure");
+let calarParcalar = []; // { ad, url } (url varsa sayfada calar, yoksa YouTube'da aranir)
+let calarSira = -1;
+
+function sureYaz(sn) {
+  if (!isFinite(sn)) sn = 0;
+  const d = Math.floor(sn / 60), s = Math.floor(sn % 60);
+  return String(d).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+}
+
+async function calarListesiniYukle() {
+  calarSes.pause();
+  calarSira = -1;
+  calarOynat.textContent = "▶";
+  calarIlerleme.style.width = "0%";
+  calarSure.textContent = "00:00";
+  calarBaslik.textContent = yil + " yılının hitleri hazır. Bir şarkı seç!";
+  document.getElementById("calar-yil-baslik").textContent = "💿 " + yil + " hitleri";
+
+  const istenenYil = yil;
+  let kendiDosyalarin = [];
+  try {
+    const cevap = await fetch("/muzik/" + yil);
+    if (cevap.ok) kendiDosyalarin = await cevap.json();
+  } catch (e) {}
+  if (istenenYil !== yil) return; // bu arada yil degistiyse eski sonucu kullanma
+
+  const hitler = (SARKILAR[yil] || []).slice(0, 25).map(([sanatci, sarki]) => ({ ad: sanatci + " — " + sarki }));
+  calarParcalar = kendiDosyalarin.map((d) => ({ ad: "💾 " + d.ad, url: d.url })).concat(hitler);
+
+  calarListe.innerHTML = "";
+  if (!calarParcalar.length) {
+    const li = document.createElement("li");
+    li.className = "bos";
+    li.textContent = "Bu yıl için liste yok. Kendi MP3'lerini ekleyebilirsin!";
+    calarListe.appendChild(li);
+  }
+  calarParcalar.forEach((p, i) => {
+    const li = document.createElement("li");
+    li.textContent = p.ad;
+    li.title = p.url ? "Burada çal" : "YouTube'da aç";
+    li.addEventListener("click", () => parcaCal(i));
+    calarListe.appendChild(li);
+  });
+}
+
+function parcaCal(i) {
+  if (!calarParcalar.length) return;
+  calarSira = (i + calarParcalar.length) % calarParcalar.length;
+  const p = calarParcalar[calarSira];
+  [...calarListe.children].forEach((li, k) => li.classList.toggle("caliyor", k === calarSira));
+  calarBaslik.textContent = "♪ " + p.ad + " ♪";
+  if (p.url) {
+    calarSes.src = p.url;
+    calarSes.play().catch(() => {});
+  } else {
+    calarSes.pause();
+    calarOynat.textContent = "▶";
+    window.open("https://www.youtube.com/results?search_query=" + encodeURIComponent(p.ad.replace("—", "")), "_blank", "noopener");
+  }
+}
+
+calarOynat.addEventListener("click", () => {
+  if (calarSira < 0) { parcaCal(0); return; }
+  const p = calarParcalar[calarSira];
+  if (!p.url) { parcaCal(calarSira); return; }
+  if (calarSes.paused) calarSes.play().catch(() => {}); else calarSes.pause();
+});
+document.getElementById("calar-onceki").addEventListener("click", () => parcaCal(calarSira - 1));
+document.getElementById("calar-sonraki").addEventListener("click", () => parcaCal(calarSira + 1));
+calarSes.addEventListener("play", () => { calarOynat.textContent = "⏸"; });
+calarSes.addEventListener("pause", () => { calarOynat.textContent = "▶"; });
+calarSes.addEventListener("ended", () => {
+  // sonraki sayfada calinabilen parcaya gec
+  const sonraki = calarParcalar.findIndex((p, k) => k > calarSira && p.url);
+  if (sonraki >= 0) parcaCal(sonraki);
+});
+calarSes.addEventListener("timeupdate", () => {
+  const oran = calarSes.duration ? (calarSes.currentTime / calarSes.duration) * 100 : 0;
+  calarIlerleme.style.width = oran + "%";
+  calarSure.textContent = sureYaz(calarSes.currentTime);
+});
+
+// Sayfayi secili yila gore ayarla
+function yiliUygula() {
+  const d = donemBilgisi(yil);
+  document.body.classList.toggle("modern", d.tema === "modern");
+  document.body.classList.toggle("web2", d.tema === "web2");
+  document.body.dataset.yazi = yaziTipi(yil).ad;
+  document.body.classList.toggle("modern", d.tema === "modern"); // arka plan icin tema once ayarlansin
+  document.title = d.sayfaBasligi;
+  pencereYazi.textContent = d.pencere;
+  mesajKutusu.placeholder = d.placeholder;
+  gonderDugmesi.textContent = d.gonder;
+  document.getElementById("modern-ad").textContent = d.botAdi;
+  document.getElementById("modern-alt-baslik").textContent = d.altBaslik || "";
+  document.getElementById("modern-alt").textContent = d.altBilgi || "";
+  document.getElementById("telif-yil").textContent = String(yil);
+  bilgileriGoster();
+  calarListesiniYukle();
+  karsilama();
+}
+
+// Zaman makinesi: yil degisince
+yilSecici.addEventListener("change", () => {
+  yil = parseInt(yilSecici.value, 10);
+  guvenliYaz("retrobot_yil", String(yil));
+  document.body.classList.add("gecis");
+  setTimeout(yiliUygula, 300); // efektin ortasinda gorunumu degistir
+  setTimeout(() => document.body.classList.remove("gecis"), 600);
+});
+
+form.addEventListener("submit", async (olay) => {
+  olay.preventDefault();
+  const mesaj = mesajKutusu.value.trim();
+  if (!mesaj) return;
+
+  const d = donemBilgisi(yil);
+  satirEkle("kullanici", "Sen", mesaj);
+  mesajKutusu.value = "";
+  gonderDugmesi.disabled = true;
+  const bekleme = satirEkle("sistem", "", d.yaziyor);
+
+  try {
+    const cevap = await fetch("/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: mesaj, session_id: oturumId, year: yil }),
+    });
+    const veri = await cevap.json();
+    bekleme.remove();
+    if (!cevap.ok) {
+      const detay = typeof veri.detail === "string" ? veri.detail : "Bir seyler ters gitti.";
+      satirEkle("hata", "HATA", detay);
+    } else {
+      satirEkle("bot", d.botAdi, veri.reply);
+    }
+  } catch (hata) {
+    bekleme.remove();
+    satirEkle("hata", "HATA", "Sunucuya ulasilamadi. Telefon hatti mesgul olabilir!");
+  } finally {
+    gonderDugmesi.disabled = false;
+    mesajKutusu.focus();
+  }
+});
+
+sifirlaDugmesi.addEventListener("click", async () => {
+  try { await fetch("/chat/" + oturumId, { method: "DELETE" }); } catch (e) {}
+  karsilama();
+});
+
+// Canli tarih ve saat (her saniye guncellenir)
+const tarihYazi = document.getElementById("tarih");
+const saatYazi = document.getElementById("saat");
+function saatiGuncelle() {
+  const simdi = new Date();
+  tarihYazi.textContent = simdi.toLocaleDateString("tr-TR", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+  });
+  saatYazi.textContent = simdi.toLocaleTimeString("tr-TR", {
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+  });
+}
+saatiGuncelle();
+setInterval(saatiGuncelle, 1000);
+
+// Sahte ziyaretci sayaci
+let ziyaret = parseInt(guvenliOku("retrobot_sayac", "1336"), 10) + 1;
+guvenliYaz("retrobot_sayac", String(ziyaret));
+document.getElementById("sayac").textContent = String(ziyaret).padStart(6, "0");
+
+yiliUygula();
+mesajKutusu.focus();

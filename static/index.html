@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>~*~ RetroBot'un Ana Sayfasi ~*~</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=Pixelify+Sans:wght@400;700&family=Roboto:wght@400;500;700&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Orbitron:wght@600;800&display=swap">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <!-- Ust cubuk: zaman makinesi dugmesi + canli saat -->
+  <div class="ust-cubuk">
+    <label class="zaman-makinesi">
+      <span class="zaman-etiket">⏳ Zaman Makinesi:</span>
+      <select id="yil-secici" class="yil-secici" aria-label="Gidilecek yil"></select>
+    </label>
+    <div class="saat-kutusu">
+      <span id="tarih" class="tarih">--.--.----</span>
+      <span id="saat" class="saat">--:--:--</span>
+    </div>
+  </div>
+
+  <div class="duzen">
+  <aside class="bilgi-paneli">
+    <h2 id="bilgi-baslik" class="bilgi-baslik">1997</h2>
+    <div id="bilgi-icerik"></div>
+    <p id="yazi-tipi-notu" class="yazi-tipi-notu"></p>
+  </aside>
+
+  <table class="sayfa" cellpadding="0" cellspacing="0">
+    <tr>
+      <td>
+        <!-- 1997 basligi -->
+        <h1 class="baslik sadece-retro">~*~ RetroBot'un Ana Sayfasi ~*~</h1>
+
+        <!-- 2030'lar basligi -->
+        <header class="modern-baslik sadece-modern">
+          <div class="logo">◐</div>
+          <div>
+            <h1 id="modern-ad">NovaBot</h1>
+            <p id="modern-alt-baslik">Kişisel yapay zekâ asistanın · 2035</p>
+          </div>
+        </header>
+
+        <marquee class="kayan sadece-retro" scrollamount="5">
+          *** Sitemize hos geldiniz!!! *** RetroBot ile sohbet edin!!! *** Yeni: Sohbet odasi acildi!!! ***
+        </marquee>
+
+        <p class="insaat sadece-retro">
+          <span class="yanip-sonen">🚧 YAPIM ASAMASINDA 🚧</span>
+        </p>
+
+        <hr class="cizgi sadece-retro">
+
+        <table class="pencere" cellpadding="0" cellspacing="0">
+          <tr>
+            <td class="pencere-baslik">
+              <span id="pencere-yazi">💾 RetroBot Sohbet Odasi - 56k modem ile bagli</span>
+              <span class="pencere-dugmeler">
+                <b class="sadece-retro">_</b><b class="sadece-retro">□</b><b id="sifirla" title="Sohbeti sifirla">×</b>
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td class="pencere-icerik">
+              <div id="sohbet" class="sohbet"></div>
+              <form id="form" class="form">
+                <input id="mesaj" type="text" autocomplete="off"
+                       placeholder="Mesajini yaz ve ENTER'a bas..." maxlength="500">
+                <button type="submit" id="gonder">Gonder</button>
+              </form>
+            </td>
+          </tr>
+        </table>
+
+        <hr class="cizgi sadece-retro">
+
+        <p class="sayac sadece-retro">
+          Bu sayfayi ziyaret eden <span id="sayac" class="sayac-rakam">000000</span>. kisisiniz!
+        </p>
+
+        <p class="alt-bilgi sadece-retro">
+          <a href="#" onclick="alert('Ziyaretci defteri yakinda!'); return false;">📖 Ziyaretci Defterini Imzala</a>
+          &nbsp;|&nbsp;
+          <a href="mailto:webmaster@retrobot.com">✉️ Webmaster'a Yaz</a>
+        </p>
+
+        <p class="kucuk sadece-retro">
+          En iyi 800x600 cozunurlukte goruntulenir.<br>
+          &copy; <span id="telif-yil">1997</span> RetroBot. Tum haklari saklidir.
+        </p>
+
+        <p id="modern-alt" class="modern-alt sadece-modern">Uçtan uca şifreli · Nöral bağlantı aktif</p>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Sag sutun: MP3 calar + oyun kosesi -->
+  <div class="sag-sutun">
+    <section class="bilgi-paneli calar">
+      <h2 class="bilgi-baslik">🎵 MP3 Çalar</h2>
+      <div class="calar-ekran">
+        <div class="calar-kayan"><span id="calar-baslik">Bir şarkı seç...</span></div>
+        <div class="calar-cubuk"><div id="calar-ilerleme"></div></div>
+        <div id="calar-sure" class="calar-sure">00:00</div>
+      </div>
+      <div class="calar-dugmeler">
+        <button type="button" id="calar-onceki" title="Önceki">⏮</button>
+        <button type="button" id="calar-oynat" title="Oynat / Duraklat">▶</button>
+        <button type="button" id="calar-sonraki" title="Sonraki">⏭</button>
+      </div>
+      <audio id="calar-ses" preload="none"></audio>
+      <h3 class="bilgi-bolum" id="calar-yil-baslik">Yılın hitleri</h3>
+      <ol id="calar-liste" class="calar-liste"></ol>
+      <p class="calar-not">Hitler YouTube'da açılır. Kendi MP3'lerini <code>static/muzik/&lt;yıl&gt;/</code> klasörüne koyarsan burada çalar.</p>
+    </section>
+
+    <section class="bilgi-paneli oyun-kosesi">
+      <h2 class="bilgi-baslik">🕹️ Oyun Köşesi</h2>
+      <div class="oyun-sekmeler">
+        <button type="button" class="oyun-sekme secili" data-oyun="yilan">🐍 Yılan</button>
+        <button type="button" class="oyun-sekme" data-oyun="zipzip">🐹 Zıpzıp</button>
+        <button type="button" id="oyun-ses" class="oyun-ses" title="Müziği aç / kapat">🔊</button>
+      </div>
+      <canvas id="oyun-tuvali" class="oyun-tuvali" width="320" height="240" tabindex="0"
+              aria-label="Oyun alanı"></canvas>
+      <div id="oyun-skor" class="oyun-skor"></div>
+      <div id="dokunmatik" class="dokunmatik">
+        <button type="button" data-tus="ArrowLeft">◀</button>
+        <button type="button" data-tus="ArrowUp" class="yukari">▲</button>
+        <button type="button" data-tus="ArrowDown" class="asagi">▼</button>
+        <button type="button" data-tus="ArrowRight">▶</button>
+      </div>
+      <p class="calar-not">Oyuna tıkla, ok tuşları ya da WASD ile oyna. Zıpzıp'ta SPACE ile zıpla.</p>
+    </section>
+  </div>
+  </div>
+
+  <script src="/static/olaylar.js"></script>
+  <script src="/static/muzik.js"></script>
+  <script src="/static/arkaplan.js"></script>
+  <script src="/static/script.js"></script>
+  <script src="/static/oyunlar.js"></script>
+</body>
+</html>

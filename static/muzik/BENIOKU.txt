@@ -1,0 +1,10 @@
+Kendi müziklerini buraya ekleyebilirsin!
+
+Her yıl için bir klasör aç ve MP3 dosyalarını içine koy. Örneğin:
+
+  static/muzik/1997/sarki-adi.mp3
+  static/muzik/2005/baska-bir-sarki.mp3
+
+Sonra sayfada o yılı seçtiğinde bu şarkılar MP3 çaların listesinin
+en üstünde 💾 işaretiyle görünür ve doğrudan sayfada çalar.
+(.mp3, .m4a, .ogg ve .wav dosyaları desteklenir.)
