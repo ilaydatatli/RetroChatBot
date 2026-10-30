@@ -5,14 +5,20 @@ RetroChatBot - Kendini 1990'larda sanan bir sohbet botu (Gemini ile).
     uvicorn main:app --reload
 
 Sonra tarayıcıda aç:  http://127.0.0.1:8000
+
+Canlıda (Render vb.) başlatma komutu:
+    uvicorn main:app --host 0.0.0.0 --port $PORT
 """
 
+import logging
 import os
+import time
+from collections import defaultdict, deque
 from pathlib import Path
 from urllib.parse import quote
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from google import genai
@@ -30,6 +36,7 @@ if not API_KEY or API_KEY.startswith("buraya"):
     )
 
 client = genai.Client(api_key=API_KEY)
+logger = logging.getLogger("retrochatbot")
 
 # Botun kişiliği seçilen yıla göre oluşturulur
 SIMDIKI_YIL = 2026
@@ -89,11 +96,41 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Her oturumun son Gemini etkileşim kimliği (konuşmanın devamı için).
 # Sunucu yeniden başlayınca sıfırlanır.
 sessions: dict[str, str] = {}
+MAKS_OTURUM = 5000  # bellek dolmasın diye en eski oturumlar silinir
+
+# Hız sınırı: aynı IP'den dakikada en fazla bu kadar mesaj (Gemini kotası korunur)
+DAKIKADA_MESAJ = 10
+istek_zamanlari: dict[str, deque] = defaultdict(deque)
+
+
+def istemci_ip(request: Request) -> str:
+    # Render gibi platformlar gerçek IP'yi X-Forwarded-For başlığında iletir
+    ileten = request.headers.get("x-forwarded-for")
+    if ileten:
+        return ileten.split(",")[0].strip()
+    return request.client.host if request.client else "bilinmiyor"
+
+
+def hiz_siniri_kontrol(ip: str):
+    simdi = time.monotonic()
+    zamanlar = istek_zamanlari[ip]
+    while zamanlar and simdi - zamanlar[0] > 60:
+        zamanlar.popleft()
+    if len(zamanlar) >= DAKIKADA_MESAJ:
+        raise HTTPException(
+            status_code=429,
+            detail="Çok hızlı yazıyorsun! Modem soğusun, bir dakika sonra tekrar dene.",
+        )
+    zamanlar.append(simdi)
+    # Boşalan kayıtları temizle
+    if len(istek_zamanlari) > 10000:
+        for eski in [k for k, v in istek_zamanlari.items() if not v or simdi - v[-1] > 60]:
+            istek_zamanlari.pop(eski, None)
 
 
 class ChatRequest(BaseModel):
-    message: str
-    session_id: str = "varsayilan"
+    message: str = Field(min_length=1, max_length=500)
+    session_id: str = Field(default="varsayilan", max_length=100)
     year: int = Field(default=1997, ge=1990, le=GELECEK_YIL)
 
 
@@ -122,7 +159,9 @@ def home():
 
 
 @app.post("/chat", response_model=ChatResponse)
-def chat(req: ChatRequest):
+def chat(req: ChatRequest, request: Request):
+    hiz_siniri_kontrol(istemci_ip(request))
+
     # Her yılın kendi konuşma geçmişi olsun
     key = f"{req.session_id}:{req.year}"
     params = {
@@ -136,9 +175,16 @@ def chat(req: ChatRequest):
 
     try:
         interaction = client.interactions.create(**params)
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Gemini hatası: {e}")
+    except Exception:
+        # Ayrıntı sunucu günlüğüne yazılır, kullanıcıya gösterilmez
+        logger.exception("Gemini hatası")
+        raise HTTPException(
+            status_code=502,
+            detail="Bağlantı koptu, modem tekrar çevriliyor... Birazdan tekrar dene.",
+        )
 
+    if key not in sessions and len(sessions) >= MAKS_OTURUM:
+        sessions.pop(next(iter(sessions)))
     sessions[key] = interaction.id
     return ChatResponse(reply=extract_text(interaction), session_id=req.session_id)
 
