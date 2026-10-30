@@ -16,6 +16,7 @@
       <span class="zaman-etiket">⏳ Zaman Makinesi:</span>
       <select id="yil-secici" class="yil-secici" aria-label="Gidilecek yil"></select>
     </label>
+    <button type="button" id="tahmin-baslat" class="tahmin-dugme">🎲 Hangi yıldayım?</button>
     <div class="saat-kutusu">
       <span id="tarih" class="tarih">--.--.----</span>
       <span id="saat" class="saat">--:--:--</span>
@@ -24,9 +25,28 @@
 
   <div class="duzen">
   <aside class="bilgi-paneli">
-    <h2 id="bilgi-baslik" class="bilgi-baslik">1997</h2>
-    <div id="bilgi-icerik"></div>
-    <p id="yazi-tipi-notu" class="yazi-tipi-notu"></p>
+    <div id="yil-bilgisi">
+      <h2 id="bilgi-baslik" class="bilgi-baslik">1997</h2>
+      <div id="bilgi-icerik"></div>
+      <p id="yazi-tipi-notu" class="yazi-tipi-notu"></p>
+    </div>
+
+    <!-- "Hangi yildayim?" tahmin oyunu -->
+    <div id="tahmin-paneli" class="tahmin-paneli" hidden>
+      <h2 class="bilgi-baslik">🎲 Hangi yıldayım?</h2>
+      <p class="tahmin-aciklama">Gizemli Bot 1990 ile 2026 arasında bir yılda yaşıyor ama hangisi olduğunu söylemiyor. Ona sorular sor, ipuçlarını topla ve yılı tahmin et!</p>
+      <div class="tahmin-form">
+        <select id="tahmin-yil" aria-label="Tahmin ettiğin yıl"></select>
+        <button type="button" id="tahmin-gonder">Tahmin et</button>
+      </div>
+      <p id="tahmin-sonuc" class="tahmin-sonuc" aria-live="polite"></p>
+      <ul id="tahmin-gecmisi" class="tahmin-gecmisi"></ul>
+      <p class="tahmin-skor">Deneme: <b id="tahmin-deneme">0</b> · En iyi skorun: <b id="tahmin-rekor">—</b></p>
+      <div class="tahmin-alt">
+        <button type="button" id="tahmin-pes">🏳️ Pes et</button>
+        <button type="button" id="tahmin-cik">⏳ Zaman makinesine dön</button>
+      </div>
+    </div>
   </aside>
 
   <table class="sayfa" cellpadding="0" cellspacing="0">
@@ -59,16 +79,18 @@
             <td class="pencere-baslik">
               <span id="pencere-yazi">💾 RetroBot Sohbet Odasi - 56k modem ile bagli</span>
               <span class="pencere-dugmeler">
-                <b class="sadece-retro">_</b><b class="sadece-retro">□</b><b id="sifirla" title="Sohbeti sifirla">×</b>
+                <b id="ses-dugme" title="Sesleri aç / kapat">🔔</b><b class="sadece-retro">_</b><b class="sadece-retro">□</b><b id="sifirla" title="Sohbeti sifirla">×</b>
               </span>
             </td>
           </tr>
           <tr>
             <td class="pencere-icerik">
+              <div id="durum-satiri" class="durum-satiri" hidden></div>
               <div id="sohbet" class="sohbet"></div>
               <form id="form" class="form">
                 <input id="mesaj" type="text" autocomplete="off"
                        placeholder="Mesajini yaz ve ENTER'a bas..." maxlength="500">
+                <button type="button" id="titresim" class="titresim-dugme" title="Titreşim gönder">📳</button>
                 <button type="submit" id="gonder">Gonder</button>
               </form>
             </td>
@@ -141,7 +163,9 @@
   <script src="/static/olaylar.js"></script>
   <script src="/static/muzik.js"></script>
   <script src="/static/arkaplan.js"></script>
+  <script src="/static/msn.js"></script>
   <script src="/static/script.js"></script>
+  <script src="/static/tahmin.js"></script>
   <script src="/static/oyunlar.js"></script>
 </body>
 </html>

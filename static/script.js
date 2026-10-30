@@ -88,11 +88,38 @@ let yil = parseInt(guvenliOku("retrobot_yil", "1997"), 10);
 if (!(yil >= ILK_YIL && yil <= SIMDIKI_YIL) && yil !== GELECEK_YIL) yil = 1997;
 yilSecici.value = String(yil);
 
-// Her tarayici kendi oturumunu kullansin
-let oturumId = guvenliOku("retrobot_oturum", "");
-if (!oturumId) {
-  oturumId = "oturum-" + Math.random().toString(36).slice(2, 10);
-  guvenliYaz("retrobot_oturum", oturumId);
+// "Hangi yildayim?" oyununun durumu (oyun ekrani tahmin.js'te)
+const tahmin = { aktif: false, yil: null, deneme: 0, bitti: false, gecmis: { id: null, satirlar: [] } };
+
+// Sohbet gecmisi tarayicida, her yil icin ayri saklanir: Gemini'nin konusma kimligi
+// (bot konusulanlari hatirlasin) ve ekrandaki son satirlar (sayfa yenilense de gorunsun).
+const MAKS_SATIR = 60;
+
+function gecmisiOku() {
+  if (tahmin.aktif) return tahmin.gecmis;
+  try {
+    const veri = JSON.parse(localStorage.getItem("retrobot_gecmis_" + yil) || "null");
+    if (veri && Array.isArray(veri.satirlar)) return veri;
+  } catch (e) {}
+  return { id: null, satirlar: [] };
+}
+
+function gecmisiYaz(gecmis) {
+  gecmis.satirlar = gecmis.satirlar.slice(-MAKS_SATIR);
+  if (tahmin.aktif) { tahmin.gecmis = gecmis; return; }
+  guvenliYaz("retrobot_gecmis_" + yil, JSON.stringify(gecmis));
+}
+
+function gecmisiSil() {
+  if (tahmin.aktif) { tahmin.gecmis = { id: null, satirlar: [] }; return; }
+  try { localStorage.removeItem("retrobot_gecmis_" + yil); } catch (e) {}
+}
+
+// Su an kimle konusuyoruz? (oyunda yil gizli, bot "Gizemli Bot")
+function aktifBot() {
+  if (tahmin.aktif) return { yil: tahmin.yil, botAdi: "Gizemli Bot", tema: donemBilgisi(yil).tema, mod: "oyun" };
+  const d = donemBilgisi(yil);
+  return { yil, botAdi: d.botAdi, tema: d.tema, mod: "sohbet" };
 }
 
 function satirEkle(tur, kim, metin) {
@@ -104,15 +131,43 @@ function satirEkle(tur, kim, metin) {
     b.textContent = kim + ": ";
     p.appendChild(b);
   }
-  p.appendChild(document.createTextNode(metin));
+  const yazi = document.createElement("span");
+  yazi.className = "yazi";
+  if (tur === "bot" || tur === "kullanici") ifadeliYaz(yazi, metin);
+  else yazi.textContent = metin;
+  p.appendChild(yazi);
   sohbet.appendChild(p);
   sohbet.scrollTop = sohbet.scrollHeight;
   return p;
 }
 
+// Botun [TITRESIM] isaretini ve henuz tamamlanmamis "[TIT..." parcasini gizler
+function botMetniTemizle(metin) {
+  return metin.replace(/\[TITRESIM\]/g, "").replace(/\[[A-ZİŞ]*$/, "").trimEnd();
+}
+
+function karsilamaSatirlari() {
+  if (tahmin.aktif) {
+    return [
+      ["sistem", "", "*** Zaman makinesi bozuldu... Bilinmeyen bir yıla ışınlandın! ***"],
+      ["bot", "Gizemli Bot", "Selam yabancı! Bil bakalım hangi yıldayız? Bana bir şeyler sor, ipuçları vereyim ;)"],
+    ];
+  }
+  return donemBilgisi(yil).karsilama;
+}
+
 function karsilama() {
   sohbet.innerHTML = "";
-  donemBilgisi(yil).karsilama.forEach(([tur, kim, metin]) => satirEkle(tur, kim, metin));
+  karsilamaSatirlari().forEach(([tur, kim, metin]) => satirEkle(tur, kim, metin));
+}
+
+// Kayitli sohbet varsa onu, yoksa karsilama mesajlarini goster
+function sohbetiYukle() {
+  const gecmis = gecmisiOku();
+  if (!gecmis.satirlar.length) { karsilama(); return; }
+  sohbet.innerHTML = "";
+  satirEkle("sistem", "", "*** Önceki sohbet geri yüklendi ***");
+  gecmis.satirlar.forEach(([tur, kim, metin]) => satirEkle(tur, kim, metin));
 }
 
 // Yila gore yazi tipi
@@ -225,6 +280,7 @@ function parcaCal(i) {
   const p = calarParcalar[calarSira];
   [...calarListe.children].forEach((li, k) => li.classList.toggle("caliyor", k === calarSira));
   calarBaslik.textContent = "♪ " + p.ad + " ♪";
+  durumSatiriniGuncelle(p.ad.replace(/^💾 /, ""));
   if (p.url) {
     calarSes.src = p.url;
     calarSes.play().catch(() => {});
@@ -256,11 +312,26 @@ calarSes.addEventListener("timeupdate", () => {
   calarSure.textContent = sureYaz(calarSes.currentTime);
 });
 
+// MSN tarzi "Dinliyor: ..." satiri (anlik mesajlasma yillarinda)
+const durumSatiri = document.getElementById("durum-satiri");
+let dinlenen = "";
+function durumSatiriniGuncelle(sarki) {
+  if (sarki !== undefined) dinlenen = sarki;
+  const goster = msnDonemi(yil) && !tahmin.aktif && dinlenen;
+  durumSatiri.hidden = !goster;
+  durumSatiri.textContent = goster ? "🎵 " + donemBilgisi(yil).botAdi + " şunu dinliyor: " + dinlenen : "";
+}
+
+function msnDonemi(y) {
+  return y >= 1999 && y <= 2012;
+}
+
 // Sayfayi secili yila gore ayarla
 function yiliUygula() {
   const d = donemBilgisi(yil);
   document.body.classList.toggle("modern", d.tema === "modern");
   document.body.classList.toggle("web2", d.tema === "web2");
+  document.body.classList.toggle("msn", msnDonemi(yil));
   document.body.dataset.yazi = yaziTipi(yil).ad;
   document.body.classList.toggle("modern", d.tema === "modern"); // arka plan icin tema once ayarlansin
   document.title = d.sayfaBasligi;
@@ -273,7 +344,8 @@ function yiliUygula() {
   document.getElementById("telif-yil").textContent = String(yil);
   bilgileriGoster();
   calarListesiniYukle();
-  karsilama();
+  durumSatiriniGuncelle();
+  sohbetiYukle();
 }
 
 // Zaman makinesi: yil degisince
@@ -283,44 +355,147 @@ yilSecici.addEventListener("change", () => {
   document.body.classList.add("gecis");
   setTimeout(yiliUygula, 300); // efektin ortasinda gorunumu degistir
   setTimeout(() => document.body.classList.remove("gecis"), 600);
+  if (yil < 2000) RetroSes.modem();
 });
 
-form.addEventListener("submit", async (olay) => {
-  olay.preventDefault();
-  const mesaj = mesajKutusu.value.trim();
-  if (!mesaj) return;
+// Sunucunun cevabi satir satir JSON olarak akar: {t: "parca"}, {id: "..."} ya da {hata: "..."}
+async function cevabiOku(cevap, parcaGeldi) {
+  const okuyucu = cevap.body.getReader();
+  const cozucu = new TextDecoder();
+  let tampon = "";
+  const sonuc = { id: null, hata: null };
+  const satiriIsle = (s) => {
+    if (!s.trim()) return;
+    const veri = JSON.parse(s);
+    if (veri.t) parcaGeldi(veri.t);
+    if (veri.id) sonuc.id = veri.id;
+    if (veri.hata) sonuc.hata = veri.hata;
+  };
+  for (;;) {
+    const { value, done } = await okuyucu.read();
+    if (done) break;
+    tampon += cozucu.decode(value, { stream: true });
+    const satirlar = tampon.split("\n");
+    tampon = satirlar.pop();
+    satirlar.forEach(satiriIsle);
+  }
+  satiriIsle(tampon + cozucu.decode());
+  return sonuc;
+}
 
-  const d = donemBilgisi(yil);
+let gonderiliyor = false;
+
+async function mesajGonder(mesaj) {
+  if (gonderiliyor) return;
+  gonderiliyor = true;
+  const bot = aktifBot();
+  const gecmis = gecmisiOku();
   satirEkle("kullanici", "Sen", mesaj);
-  mesajKutusu.value = "";
   gonderDugmesi.disabled = true;
-  const bekleme = satirEkle("sistem", "", d.yaziyor);
+  const bekleme = satirEkle("sistem", "", tahmin.aktif ? "Gizemli Bot yazıyor..." : donemBilgisi(yil).yaziyor);
 
+  let botSatiri = null;
+  let metin = "";
   try {
     const cevap = await fetch("/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: mesaj, session_id: oturumId, year: yil }),
+      body: JSON.stringify({ message: mesaj, year: bot.yil, previous_id: gecmis.id, mode: bot.mod }),
     });
-    const veri = await cevap.json();
-    bekleme.remove();
     if (!cevap.ok) {
-      const detay = typeof veri.detail === "string" ? veri.detail : "Bir seyler ters gitti.";
-      satirEkle("hata", "HATA", detay);
-    } else {
-      satirEkle("bot", d.botAdi, veri.reply);
+      const veri = await cevap.json().catch(() => ({}));
+      bekleme.remove();
+      satirEkle("hata", "HATA", typeof veri.detail === "string" ? veri.detail : "Bir seyler ters gitti.");
+      return;
+    }
+
+    // Gelen metin ekrana daktilo gibi akar (parcalar ne kadar hizli gelirse gelsin)
+    let gosterilen = 0;
+    let akisBitti = false;
+    let daktilo = Promise.resolve();
+    const daktiloyuBaslat = () => new Promise((bitti) => {
+      const adim = () => {
+        if (gosterilen < metin.length) {
+          gosterilen = Math.min(metin.length, gosterilen + Math.max(2, Math.ceil((metin.length - gosterilen) / 40)));
+          ifadeliYaz(botSatiri.querySelector(".yazi"), botMetniTemizle(metin.slice(0, gosterilen)));
+          sohbet.scrollTop = sohbet.scrollHeight;
+        }
+        if (akisBitti && gosterilen >= metin.length) bitti();
+        else setTimeout(adim, 30);
+      };
+      adim();
+    });
+
+    let sonuc;
+    try {
+      sonuc = await cevabiOku(cevap, (parca) => {
+        metin += parca;
+        if (!botSatiri) {
+          bekleme.remove();
+          botSatiri = satirEkle("bot", bot.botAdi, "");
+          daktilo = daktiloyuBaslat();
+        }
+      });
+    } finally {
+      akisBitti = true;
+    }
+    await daktilo;
+    bekleme.remove();
+
+    const temiz = botMetniTemizle(metin);
+    if (temiz) {
+      gecmis.satirlar.push(["kullanici", "Sen", mesaj], ["bot", bot.botAdi, temiz]);
+      if (sonuc.id) gecmis.id = sonuc.id;
+      gecmisiYaz(gecmis);
+      RetroSes.mesaj(bot.tema);
+    }
+    if (sonuc.hata) satirEkle("hata", "HATA", sonuc.hata);
+    if (metin.includes("[TITRESIM]") && !tahmin.aktif) {
+      satirEkle("sistem", "", bot.botAdi + " sana titreşim gönderdi!");
+      pencereyiSalla();
     }
   } catch (hata) {
     bekleme.remove();
     satirEkle("hata", "HATA", "Sunucuya ulasilamadi. Telefon hatti mesgul olabilir!");
   } finally {
+    gonderiliyor = false;
     gonderDugmesi.disabled = false;
     mesajKutusu.focus();
   }
+}
+
+form.addEventListener("submit", (olay) => {
+  olay.preventDefault();
+  const mesaj = mesajKutusu.value.trim();
+  if (!mesaj || gonderiliyor) return;
+  mesajKutusu.value = "";
+  mesajGonder(mesaj);
 });
 
-sifirlaDugmesi.addEventListener("click", async () => {
-  try { await fetch("/chat/" + oturumId, { method: "DELETE" }); } catch (e) {}
+// Titresim gonder (MSN gibi: arka arkaya gonderilemez)
+const titresimDugmesi = document.getElementById("titresim");
+let sonTitresim = 0;
+titresimDugmesi.addEventListener("click", () => {
+  if (gonderiliyor) return;
+  if (Date.now() - sonTitresim < 10000) {
+    satirEkle("sistem", "", "Çok sık titreşim gönderemezsin. Biraz bekle!");
+    return;
+  }
+  sonTitresim = Date.now();
+  pencereyiSalla();
+  mesajGonder("*sana titreşim gönderdi*");
+});
+
+// Sesleri ac / kapat
+const sesDugmesi = document.getElementById("ses-dugme");
+function sesDugmesiniGoster() {
+  sesDugmesi.textContent = RetroSes.acik ? "🔔" : "🔕";
+}
+sesDugmesi.addEventListener("click", () => { RetroSes.degistir(); sesDugmesiniGoster(); });
+sesDugmesiniGoster();
+
+sifirlaDugmesi.addEventListener("click", () => {
+  gecmisiSil();
   karsilama();
 });
 

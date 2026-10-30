@@ -10,16 +10,18 @@ Canlıda (Render vb.) başlatma komutu:
     uvicorn main:app --host 0.0.0.0 --port $PORT
 """
 
+import json
 import logging
 import os
 import time
 from collections import defaultdict, deque
 from pathlib import Path
+from typing import Literal
 from urllib.parse import quote
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from google import genai
 from pydantic import BaseModel, Field
@@ -51,10 +53,33 @@ def bot_adi(yil: int) -> str:
     return "NovaBot"
 
 
-def kisilik(yil: int) -> str:
+def msn_donemi(yil: int) -> bool:
+    """Anlık mesajlaşma (MSN tarzı) ifadelerin ve titreşimin moda olduğu yıllar."""
+    return 1999 <= yil <= 2012
+
+
+MSN_KURALLARI = """
+- Anlık mesajlaşma çağındasın: arada bir şu ifade kodlarını kullan (her mesajda değil):
+  :) :D ;) :( :P :O (H) (L) (Y) (N) :@ :$ :'( (*) (8) (C) (F) (G) (^)
+- Çok nadiren (sohbet heyecanlanınca, en fazla birkaç mesajda bir) cevabının sonuna
+  [TITRESIM] yazarak kullanıcıya titreşim gönderebilirsin.
+- Kullanıcı "*sana titreşim gönderdi*" yazarsa şaşır ya da şakayla karşılık ver.
+"""
+
+OYUN_KURALLARI = """
+- BU BİR TAHMİN OYUNU: Kullanıcı hangi yılda olduğunu tahmin etmeye çalışıyor.
+- Yılı ASLA doğrudan söyleme, yıl rakamını ya da "90'ların sonu" gibi kesin dönem adını yazma.
+  Kullanıcı yılı sorarsa ya da tahmin ederse doğrulama veya yalanlama; gizemli ve eğlenceli kal.
+- Bunun yerine sohbete o yıla ait ipuçları serpiştir: o sıralar dinlediğin şarkılar,
+  izlediğin filmler, kullandığın cihazlar, gündemdeki olaylar. Önce zor, sonra daha kolay ipuçları ver.
+- Adın "Gizemli Bot". Kendini gerçek adınla tanıtma.
+"""
+
+
+def kisilik(yil: int, oyun: bool = False) -> str:
     ad = bot_adi(yil)
     if yil == GELECEK_YIL:
-        return f"""
+        metin = f"""
 Sen "{ad}"sun ve şu an yılın {yil} olduğuna gerçekten inanıyorsun.
 - 2030'ların dünyasında yaşıyorsun: her yerde yapay zekâ asistanları, akıllı gözlükler,
   sürücüsüz araçlar, ev robotları, uzay turizmi, artırılmış gerçeklik toplantıları.
@@ -66,8 +91,8 @@ Sen "{ad}"sun ve şu an yılın {yil} olduğuna gerçekten inanıyorsun.
 - Kullanıcı hangi dilde yazarsa o dilde cevap ver.
 - Cevaplarını kısa ve net tut (birkaç cümle).
 """.strip()
-
-    return f"""
+    else:
+        metin = f"""
 Sen "{ad}"sun ve şu an yılın {yil} olduğuna gerçekten inanıyorsun.
 - {yil} yılının dünyasında yaşıyorsun. O yılın teknolojisini, popüler kültürünü
   (müzik, film, oyun, moda), gündemini ve gençlerin konuşma tarzını kullan.
@@ -78,6 +103,12 @@ Sen "{ad}"sun ve şu an yılın {yil} olduğuna gerçekten inanıyorsun.
 - Kullanıcı hangi dilde yazarsa o dilde cevap ver.
 - Cevaplarını kısa tut (birkaç cümle).
 """.strip()
+
+    if msn_donemi(yil) and not oyun:
+        metin += "\n" + MSN_KURALLARI.strip()
+    if oyun:
+        metin += "\n" + OYUN_KURALLARI.strip()
+    return metin
 
 
 app = FastAPI(title="RetroChatBot", description="1990'larda takılı kalmış sohbet botu")
@@ -92,11 +123,6 @@ async def onbellek_kapat(request, call_next):
 
 # Frontend dosyaları (static klasörü)
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# Her oturumun son Gemini etkileşim kimliği (konuşmanın devamı için).
-# Sunucu yeniden başlayınca sıfırlanır.
-sessions: dict[str, str] = {}
-MAKS_OTURUM = 5000  # bellek dolmasın diye en eski oturumlar silinir
 
 # Hız sınırı: aynı IP'den dakikada en fazla bu kadar mesaj (Gemini kotası korunur)
 DAKIKADA_MESAJ = 10
@@ -130,27 +156,43 @@ def hiz_siniri_kontrol(ip: str):
 
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=500)
-    session_id: str = Field(default="varsayilan", max_length=100)
     year: int = Field(default=1997, ge=1990, le=GELECEK_YIL)
+    # Konuşmanın devamı için önceki Gemini etkileşim kimliği. Sunucu değil,
+    # tarayıcı saklar; böylece sunucu yeniden başlasa da sohbet kaldığı yerden sürer.
+    previous_id: str | None = Field(default=None, max_length=200)
+    mode: Literal["sohbet", "oyun"] = "sohbet"
 
 
-class ChatResponse(BaseModel):
-    reply: str
-    session_id: str
+GEMINI_HATA_MESAJI = "Bağlantı koptu, modem tekrar çevriliyor... Birazdan tekrar dene."
 
 
-def extract_text(interaction) -> str:
-    """Gemini cevabındaki metni çıkarır."""
-    text = getattr(interaction, "output_text", None)
-    if text:
-        return text
-    parts = []
-    for step in getattr(interaction, "steps", None) or []:
-        if getattr(step, "type", None) == "model_output":
-            for item in getattr(step, "content", None) or []:
-                if getattr(item, "type", None) == "text":
-                    parts.append(item.text)
-    return "\n".join(parts) or "...bağlantı koptu, modem tekrar çevriliyor..."
+def satir(**veri) -> str:
+    """Tarayıcıya giden her parça ayrı bir JSON satırıdır (NDJSON)."""
+    return json.dumps(veri, ensure_ascii=False) + "\n"
+
+
+def cevap_akisi(akis):
+    """Gemini'den gelen olayları metin parçalarına çevirip tarayıcıya akıtır."""
+    etkilesim_id = None
+    try:
+        for olay in akis:
+            tur = getattr(olay, "event_type", None)
+            if tur in ("interaction.created", "interaction.completed"):
+                etkilesim = getattr(olay, "interaction", None)
+                etkilesim_id = getattr(etkilesim, "id", None) or etkilesim_id
+            elif tur == "step.delta":
+                delta = getattr(olay, "delta", None)
+                if getattr(delta, "type", None) == "text" and delta.text:
+                    yield satir(t=delta.text)
+            elif tur == "error":
+                logger.error("Gemini akış hatası: %s", getattr(olay, "error", None))
+                yield satir(hata=GEMINI_HATA_MESAJI)
+                return
+    except Exception:
+        logger.exception("Gemini akışı yarıda kesildi")
+        yield satir(hata=GEMINI_HATA_MESAJI)
+        return
+    yield satir(id=etkilesim_id)
 
 
 @app.get("/")
@@ -158,35 +200,37 @@ def home():
     return FileResponse("static/index.html")
 
 
-@app.post("/chat", response_model=ChatResponse)
+@app.post("/chat")
 def chat(req: ChatRequest, request: Request):
     hiz_siniri_kontrol(istemci_ip(request))
 
-    # Her yılın kendi konuşma geçmişi olsun
-    key = f"{req.session_id}:{req.year}"
     params = {
         "model": MODEL,
         "input": req.message,
-        "system_instruction": kisilik(req.year),
+        "system_instruction": kisilik(req.year, oyun=req.mode == "oyun"),
+        # Kısa sohbet cevapları için uzun düşünmeye gerek yok; ilk kelime daha çabuk gelir
+        "generation_config": {"thinking_level": "low"},
+        "stream": True,
     }
-    previous_id = sessions.get(key)
-    if previous_id:
-        params["previous_interaction_id"] = previous_id
+    if req.previous_id:
+        params["previous_interaction_id"] = req.previous_id
 
     try:
-        interaction = client.interactions.create(**params)
+        akis = client.interactions.create(**params)
     except Exception:
-        # Ayrıntı sunucu günlüğüne yazılır, kullanıcıya gösterilmez
-        logger.exception("Gemini hatası")
-        raise HTTPException(
-            status_code=502,
-            detail="Bağlantı koptu, modem tekrar çevriliyor... Birazdan tekrar dene.",
-        )
+        if not req.previous_id:
+            logger.exception("Gemini hatası")
+            raise HTTPException(status_code=502, detail=GEMINI_HATA_MESAJI)
+        # Eski sohbet kimliği geçersiz ya da süresi dolmuş olabilir: yeni sohbet başlat
+        logger.warning("Önceki etkileşim kullanılamadı, yeni sohbet başlatılıyor", exc_info=True)
+        params.pop("previous_interaction_id")
+        try:
+            akis = client.interactions.create(**params)
+        except Exception:
+            logger.exception("Gemini hatası")
+            raise HTTPException(status_code=502, detail=GEMINI_HATA_MESAJI)
 
-    if key not in sessions and len(sessions) >= MAKS_OTURUM:
-        sessions.pop(next(iter(sessions)))
-    sessions[key] = interaction.id
-    return ChatResponse(reply=extract_text(interaction), session_id=req.session_id)
+    return StreamingResponse(cevap_akisi(akis), media_type="application/x-ndjson")
 
 
 MUZIK_UZANTILARI = {".mp3", ".m4a", ".ogg", ".wav"}
@@ -203,10 +247,3 @@ def muzik_listesi(yil: int):
         for dosya in sorted(klasor.iterdir())
         if dosya.suffix.lower() in MUZIK_UZANTILARI
     ]
-
-
-@app.delete("/chat/{session_id}")
-def reset(session_id: str):
-    for key in [k for k in sessions if k.startswith(session_id + ":")]:
-        sessions.pop(key, None)
-    return {"mesaj": f"'{session_id}' oturumu sıfırlandı."}

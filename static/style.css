@@ -1154,3 +1154,116 @@ body.web2 .oyun-tuvali { border: 1px solid #9cc7ea; border-radius: 6px; }
 .yazi-tipi-notu { white-space: pre-line; }
 
 .oyun-sekmeler .oyun-ses { flex: 0 0 40px; }
+
+/* ============================================
+   MSN tarzi ozellikler: ifadeler, titresim, durum satiri, ses
+   ============================================ */
+.ifade {
+  display: inline-block;
+  font-size: 1.15em;
+  line-height: 1;
+  font-style: normal;
+  vertical-align: -0.1em;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ifade { animation: ifade-belir 0.35s ease-out; }
+  .pencere.titriyor { animation: titresim 0.5s linear; }
+}
+
+@keyframes ifade-belir {
+  0% { transform: scale(0.3); }
+  70% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+
+@keyframes titresim {
+  0%, 100% { transform: translate(0, 0); }
+  10%, 50%, 90% { transform: translate(-7px, 2px); }
+  30%, 70% { transform: translate(7px, -2px); }
+}
+
+/* Titresim dugmesi sadece anlik mesajlasma yillarinda (1999-2012) */
+.form .titresim-dugme { display: none; padding: 4px 10px; }
+body.msn .form .titresim-dugme { display: inline-block; }
+body.tahmin-oyunu .form .titresim-dugme { display: none; }
+
+.durum-satiri {
+  font-size: 12px;
+  font-style: italic;
+  color: #2a6db0;
+  padding: 4px 10px;
+  background: linear-gradient(180deg, #f3f9ff, #e2f0fc);
+  border: 1px solid #9cc7ea;
+  border-bottom: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.durum-satiri[hidden] { display: none; }
+
+#ses-dugme { font-size: 10px; }
+
+/* ============================================
+   "Hangi yildayim?" oyunu
+   ============================================ */
+.tahmin-dugme {
+  font-family: "Comic Sans MS", "Comic Sans", cursive;
+  font-size: 15px;
+  font-weight: bold;
+  color: #fff;
+  background: #ff00ff;
+  border: 3px outset #ffffff;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.tahmin-dugme:active { border-style: inset; }
+.tahmin-dugme:disabled { opacity: 0.5; cursor: default; }
+
+body.web2 .tahmin-dugme {
+  font-family: inherit;
+  border: 1px solid #c25000;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #ffb066 0%, #ff8a1f 50%, #f07300 51%, #ff9a3c 100%);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+}
+
+body.modern .tahmin-dugme {
+  font-family: inherit;
+  font-weight: 600;
+  border: 1px solid rgba(124, 92, 255, 0.6);
+  border-radius: 999px;
+  background: rgba(124, 92, 255, 0.25);
+}
+
+.tahmin-paneli[hidden], #yil-bilgisi[hidden], .calar[hidden] { display: none; }
+body.tahmin-oyunu .zaman-makinesi { opacity: 0.4; }
+
+.tahmin-aciklama { font-size: 13px; margin: 0 0 10px; }
+
+.tahmin-form { display: flex; gap: 6px; }
+.tahmin-form select { flex: 1; min-width: 0; font-size: 14px; padding: 4px; }
+
+.tahmin-paneli button {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.tahmin-paneli button:disabled { opacity: 0.5; cursor: default; }
+
+.tahmin-sonuc { font-weight: bold; min-height: 1.4em; margin: 10px 0 6px; }
+
+.tahmin-gecmisi {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  font-size: 13px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+.tahmin-gecmisi li { padding: 2px 0; border-bottom: 1px dotted currentColor; opacity: 0.8; }
+
+.tahmin-skor { font-size: 13px; margin: 6px 0 10px; }
+
+.tahmin-alt { display: flex; flex-wrap: wrap; gap: 6px; }
