@@ -393,6 +393,13 @@ async function mesajGonder(mesaj) {
   satirEkle("kullanici", "Sen", mesaj);
   gonderDugmesi.disabled = true;
   const bekleme = satirEkle("sistem", "", tahmin.aktif ? "Gizemli Bot yazıyor..." : donemBilgisi(yil).yaziyor);
+  // Ucretsiz sunucu bir sure kullanilmayinca uyur; uyanmasi bir dakikayi bulabilir
+  const beklemeYazisi = (yazi) => { bekleme.querySelector(".yazi").textContent = yazi; };
+  const uyanmaZamanlayicilari = [
+    setTimeout(() => beklemeYazisi("⏳ Hat biraz yavaş... Sunucu uyuyorsa uyanması 1 dakika kadar sürebilir."), 10000),
+    setTimeout(() => beklemeYazisi("☕ Hâlâ bağlanıyor, az kaldı! Sayfayı kapatma."), 40000),
+  ];
+  const zamanlayicilariDurdur = () => uyanmaZamanlayicilari.forEach(clearTimeout);
 
   let botSatiri = null;
   let metin = "";
@@ -431,6 +438,7 @@ async function mesajGonder(mesaj) {
       sonuc = await cevabiOku(cevap, (parca) => {
         metin += parca;
         if (!botSatiri) {
+          zamanlayicilariDurdur();
           bekleme.remove();
           botSatiri = satirEkle("bot", bot.botAdi, "");
           daktilo = daktiloyuBaslat();
@@ -458,6 +466,7 @@ async function mesajGonder(mesaj) {
     bekleme.remove();
     satirEkle("hata", "HATA", "Sunucuya ulasilamadi. Telefon hatti mesgul olabilir!");
   } finally {
+    zamanlayicilariDurdur();
     gonderiliyor = false;
     gonderDugmesi.disabled = false;
     mesajKutusu.focus();
