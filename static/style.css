@@ -1267,3 +1267,108 @@ body.tahmin-oyunu .zaman-makinesi { opacity: 0.4; }
 .tahmin-skor { font-size: 13px; margin: 6px 0 10px; }
 
 .tahmin-alt { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* --- Yillari karsilastir --- */
+body.tahmin-oyunu .karsilastir-dugme { display: none; }
+
+.karsilastir {
+  width: min(900px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  box-sizing: border-box;
+  padding: 16px;
+  border: 2px outset #ffffff;
+  background: #c0c0c0;
+  color: #000;
+  font-family: Tahoma, "MS Sans Serif", Arial, sans-serif;
+  font-size: 14px;
+}
+.karsilastir::backdrop { background: rgba(0, 0, 0, 0.55); }
+
+.karsilastir-ust {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: -16px -16px 10px;
+  padding: 6px 8px;
+  background: linear-gradient(90deg, #000080, #1084d0);
+  color: #fff;
+}
+.karsilastir-ust h2 { margin: 0; font-size: 16px; }
+.karsilastir-kapat {
+  width: 26px;
+  height: 24px;
+  font-weight: bold;
+  background: #c0c0c0;
+  border: 2px outset #ffffff;
+  cursor: pointer;
+}
+.karsilastir-aciklama { margin: 0 0 10px; }
+
+.karsilastir-yillar,
+.karsilastir-form,
+.karsilastir-oneriler {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.karsilastir-yillar select { flex: 1; min-width: 0; padding: 4px; font-size: 15px; }
+.karsilastir-vs {
+  font-family: "Comic Sans MS", "Comic Sans", cursive;
+  font-weight: bold;
+  font-size: 18px;
+  color: #ff00ff;
+  text-shadow: 1px 1px 0 #0000ff;
+}
+.karsilastir-form input { flex: 1; min-width: 0; padding: 6px; font-size: 15px; border: 2px inset #808080; }
+.karsilastir-form button,
+.karsilastir-oneriler button {
+  background: #c0c0c0;
+  border: 2px outset #ffffff;
+  padding: 5px 12px;
+  cursor: pointer;
+  font: inherit;
+}
+.karsilastir-form button:disabled { opacity: 0.5; cursor: default; }
+.karsilastir-oneriler { flex-wrap: wrap; }
+.karsilastir-oneriler button { font-size: 12px; padding: 3px 8px; }
+
+.karsilastir-sutunlar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.karsilastir-sutun { display: flex; flex-direction: column; min-width: 0; }
+.karsilastir-sutun h3 { margin: 0; padding: 6px 10px; font-size: 15px; }
+.karsilastir-cevap {
+  flex: 1;
+  min-height: 140px;
+  padding: 10px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  line-height: 1.45;
+}
+.karsilastir-cevap:empty::before { content: "Cevap burada görünecek..."; opacity: 0.5; }
+.karsilastir-cevap.bekliyor { font-style: italic; opacity: 0.7; }
+.karsilastir-cevap.hata { color: #c00000; font-weight: bold; }
+
+/* Her sutun kendi yilinin gorunumunde */
+.karsilastir-sutun[data-tema="retro"] { border: 2px outset #ffffff; background: #c0c0c0; }
+.karsilastir-sutun[data-tema="retro"] h3 { background: linear-gradient(90deg, #000080, #1084d0); color: #fff; font-family: Tahoma, Arial, sans-serif; }
+.karsilastir-sutun[data-tema="retro"] .karsilastir-cevap { margin: 6px; background: #fff; border: 2px inset #808080; font-family: "Courier New", Courier, monospace; }
+
+.karsilastir-sutun[data-tema="web2"] { border: 1px solid #9cc3ea; border-radius: 10px; overflow: hidden; background: #fff; }
+.karsilastir-sutun[data-tema="web2"] h3 { background: linear-gradient(180deg, #6fb3f0 0%, #3d8fd8 50%, #2a7dd0 51%, #5aa6ea 100%); color: #fff; font-family: "Trebuchet MS", Verdana, sans-serif; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3); }
+.karsilastir-sutun[data-tema="web2"] .karsilastir-cevap { font-family: Verdana, Tahoma, sans-serif; font-size: 13px; color: #222; }
+
+.karsilastir-sutun[data-tema="modern"] { border-radius: 16px; overflow: hidden; background: #0f1220; border: 1px solid rgba(124, 92, 255, 0.5); }
+.karsilastir-sutun[data-tema="modern"] h3 { background: linear-gradient(90deg, #7c5cff, #22d3ee); color: #fff; font-family: "Space Grotesk", Inter, sans-serif; }
+.karsilastir-sutun[data-tema="modern"] .karsilastir-cevap { font-family: Inter, sans-serif; color: #e6e8f0; }
+.karsilastir-sutun[data-tema="modern"] .karsilastir-cevap.hata { color: #ff7a8a; }
+
+@media (max-width: 640px) {
+  .karsilastir { padding: 12px; }
+  .karsilastir-ust { margin: -12px -12px 10px; }
+  .karsilastir-sutunlar { grid-template-columns: 1fr; }
+  .karsilastir-cevap { min-height: 90px; }
+}

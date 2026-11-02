@@ -17,6 +17,7 @@
       <select id="yil-secici" class="yil-secici" aria-label="Gidilecek yil"></select>
     </label>
     <button type="button" id="tahmin-baslat" class="tahmin-dugme">🎲 Hangi yıldayım?</button>
+    <button type="button" id="karsilastir-ac" class="tahmin-dugme karsilastir-dugme">⚖️ Yılları karşılaştır</button>
     <div class="saat-kutusu">
       <span id="tarih" class="tarih">--.--.----</span>
       <span id="saat" class="saat">--:--:--</span>
@@ -160,12 +161,48 @@
   </div>
   </div>
 
+  <!-- Yil karsilastirma: ayni soru, iki farkli yildaki bot -->
+  <dialog id="karsilastir" class="karsilastir" aria-labelledby="karsilastir-baslik">
+    <div class="karsilastir-ust">
+      <h2 id="karsilastir-baslik">⚖️ Yılları Karşılaştır</h2>
+      <button type="button" id="karsilastir-kapat" class="karsilastir-kapat" title="Kapat">×</button>
+    </div>
+    <p class="karsilastir-aciklama">Aynı soruyu iki farklı yıldaki bota sor, cevapları yan yana gör.</p>
+    <div class="karsilastir-yillar">
+      <select id="karsilastir-yil-1" aria-label="Birinci yıl"></select>
+      <span class="karsilastir-vs">VS</span>
+      <select id="karsilastir-yil-2" aria-label="İkinci yıl"></select>
+    </div>
+    <form id="karsilastir-form" class="karsilastir-form">
+      <input id="karsilastir-soru" type="text" autocomplete="off" maxlength="500"
+             placeholder="Sorunu yaz... (ör. İnternete nasıl bağlanıyorsun?)">
+      <button type="submit" id="karsilastir-sor">Sor</button>
+    </form>
+    <div class="karsilastir-oneriler">
+      <button type="button">İnternete nasıl bağlanıyorsun?</button>
+      <button type="button">Bu aralar ne dinliyorsun?</button>
+      <button type="button">Arkadaşlarınla nasıl haberleşiyorsun?</button>
+      <button type="button">Hafta sonu ne yapıyorsun?</button>
+    </div>
+    <div class="karsilastir-sutunlar">
+      <section class="karsilastir-sutun" id="karsilastir-sutun-1">
+        <h3></h3>
+        <div class="karsilastir-cevap" aria-live="polite"></div>
+      </section>
+      <section class="karsilastir-sutun" id="karsilastir-sutun-2">
+        <h3></h3>
+        <div class="karsilastir-cevap" aria-live="polite"></div>
+      </section>
+    </div>
+  </dialog>
+
   <script src="/static/olaylar.js"></script>
   <script src="/static/muzik.js"></script>
   <script src="/static/arkaplan.js"></script>
   <script src="/static/msn.js"></script>
   <script src="/static/script.js"></script>
   <script src="/static/tahmin.js"></script>
+  <script src="/static/karsilastir.js"></script>
   <script src="/static/oyunlar.js"></script>
 </body>
 </html>

@@ -53,6 +53,7 @@ def test_ana_sayfa_acilir(istemci):
     cevap = istemci.get("/")
     assert cevap.status_code == 200
     assert "tahmin-baslat" in cevap.text
+    assert "karsilastir-ac" in cevap.text
 
 
 def test_statik_dosyalar_onbelleklenmez(istemci):

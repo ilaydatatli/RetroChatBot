@@ -278,35 +278,145 @@
 
   // ======================= ZIPZIP (platform) =======================
   const T = 16; // karo boyutu
-  function haritaUret() {
-    const gen = 160, yuk = 15;
-    const h = [];
-    for (let y = 0; y < yuk; y++) h.push(new Array(gen).fill("."));
-    for (let x = 0; x < gen; x++) { h[13][x] = "#"; h[14][x] = "#"; }
-    [[22, 24], [47, 49], [78, 80], [110, 112], [131, 133]].forEach(([a, b]) => {
-      for (let x = a; x <= b; x++) { h[13][x] = "."; h[14][x] = "."; }
-    });
-    const platform = (x, y, uz) => { for (let i = 0; i < uz; i++) h[y][x + i] = "B"; };
-    platform(12, 9, 4); platform(30, 9, 5); platform(36, 6, 3); platform(55, 9, 6);
-    platform(66, 7, 4); platform(85, 9, 3); platform(90, 6, 4); platform(100, 9, 5);
-    platform(118, 9, 6); platform(138, 9, 4);
-    for (let i = 0; i < 4; i++) for (let j = 0; j <= i; j++) h[12 - j][60 + i + 8] = "#";
-    for (let i = 0; i < 5; i++) for (let j = 0; j <= i; j++) h[12 - j][146 + i] = "#";
-    [[13, 8], [14, 8], [15, 8], [31, 8], [33, 8], [37, 5], [38, 5], [56, 8], [58, 8],
-     [67, 6], [69, 6], [86, 8], [91, 5], [93, 5], [101, 8], [103, 8], [119, 8], [121, 8],
-     [123, 8], [139, 8], [141, 8], [26, 11], [43, 11], [74, 11], [95, 11], [126, 11]]
-      .forEach(([x, y]) => { h[y][x] = "o"; });
-    [[18, 12], [40, 12], [58, 12], [75, 12], [96, 12], [104, 12], [124, 12], [136, 12]]
-      .forEach(([x, y]) => { h[y][x] = "e"; });
-    h[12][155] = "F";
-    return h;
+  // Bolum haritalari: # zemin, B blok/bulut, o altin, e dusman, F bayrak
+  // (her bolumun bayraga ve tum altinlara ulasilabildigi fizik benzetimiyle denendi)
+  const BOLUMLER = [
+    {
+      tema: "cayir",
+      ad: "🌼 Çayır",
+      dusmanHizi: 0.6,
+      harita: [
+        "................................................................................................................................................................",
+        "................................................................................................................................................................",
+        "................................................................................................................................................................",
+        "................................................................................................................................................................",
+        "................................................................................................................................................................",
+        ".....................................oo....................................................o.o..................................................................",
+        "....................................BBB............................o.o....................BBBB..................................................................",
+        "..................................................................BBBB..........................................................................................",
+        ".............ooo...............o.o......................o.o...........................o..............o.o...............o.o.o...............o.o........#.........",
+        "............BBBB..............BBBBB....................BBBBBB..........#.............BBB............BBBBB.............BBBBBB..............BBBB.......##.........",
+        "......................................................................##............................................................................###.........",
+        "..........................o................o.........................###..o....................o..............................o....................####.........",
+        "..................e.....................e.................e.........####...e....................e.......e...................e...........e.........#####....F....",
+        "######################...######################...############################...#############################...##################...##########################",
+        "######################...######################...############################...#############################...##################...##########################",
+      ],
+    },
+    {
+      tema: "magara",
+      ad: "🪨 Mağara",
+      dusmanHizi: 0.8,
+      harita: [
+        "################################################################################################################################################################",
+        "................................................................................................................................................................",
+        "................................................................................................................................................................",
+        "................................................................................................................................................................",
+        "................................................................................................................................................................",
+        "...................................o....................................................................o...............................o.......................",
+        "..................................BBB..................................................................BBB.............................BBB......................",
+        "...............................................o................................................................................................................",
+        "...............oo.............o.o.............BBB....o...................o.......o.o...............o................o.o.............o...............o...........",
+        "..............BBB............BBBB....oo.............BBB..............o..BB......BBBB..............BBB..............BBBB............BBB.............BBB..........",
+        ".....................o.....................................o..#.....BB.....................oo................o..........#....oo..............o..................",
+        "............................................#.................#.................................#.......................#.......................................",
+        "................e..........e................#.....e....e......#...............e.......e.........#....e............e.....#..........e..................e....F....",
+        "####################...#############....##################...#####.........###############....##############...#############....############...#################",
+        "####################...#############....##################...#####.........###############....##############...#############....############...#################",
+      ],
+    },
+    {
+      tema: "bulutlar",
+      ad: "☁️ Bulutlar",
+      dusmanHizi: 0.7,
+      harita: [
+        "................................................................................................................................................................",
+        "................................................................................................................................................................",
+        "................................................................................................................................................................",
+        "................................................................................................................................................................",
+        "................................................................................................................................................................",
+        "................................................................................................................................................................",
+        ".....................................................o...................................o.....................o...oo..o........................................",
+        ".....................o........o...............o.........oo..o..............o........o.o...........................BBBB..........................................",
+        "...............o.........o.o........o............o.....BBBB.............o..........BBBBB........o...........o.............oeo........o.....o....................",
+        "...................o....BBBBB....o..............BBBB...........o.eo....BBB....o.............o..............BBBB..........BBBBB....o............o................",
+        "............oo...BBBB...........BBBB....o.eo..................BBBBBB.........BBB...........BBBB.....oeo..........................BBB....o.....BBBBo.............",
+        "...........BBBB........................BBBBBB.....................................................BBBBBB...............................BBBB.....................",
+        "............................................................................................................................................................F...",
+        "#########...........................................................................................................................................############",
+        "#########...........................................................................................................................................############",
+      ],
+    },
+  ];
+
+  // Her bolumun renkleri
+  const TEMALAR = {
+    cayir: {
+      gok: ["#5ec8ff", "#d8f3ff"], gunes: "#fff3a0", tepeler: ["#a6e3a1", "#7fd17a"], bulut: "#fff",
+      toprak: ["#b8743a", "#a0622d"], cim: ["#4ccf4c", "#3aa83a", "#7cf07c"], blok: ["#ff7fb0", "#ffa94d"],
+      dusman: ["#9b4dff", "#c79bff", "#3a0a6b"], kus: 4,
+    },
+    magara: {
+      gok: ["#120b24", "#34244f"], gunes: null, tepeler: ["#22183a", "#2d2149"], bulut: null,
+      toprak: ["#5a4a6e", "#4a3c5c"], cim: ["#8a7aa8", "#6e5f8a", "#b3a6cc"], blok: ["#4fd1c5", "#9f7aea"],
+      dusman: ["#3ccf6e", "#9af0b5", "#0c4a24"], kus: 0,
+    },
+    bulutlar: {
+      gok: ["#ff9ed1", "#ffe3b8"], gunes: "#fff6d5", tepeler: null, bulut: "rgba(255,255,255,0.6)",
+      toprak: ["#b8743a", "#a0622d"], cim: ["#4ccf4c", "#3aa83a", "#7cf07c"], blok: null,
+      dusman: ["#ff5f5f", "#ffb0b0", "#6b0a0a"], kus: 6,
+    },
+  };
+
+  // Zemin uzerindeki suslemeler: cayirda cali ve cicek, magarada kristal ve mantar
+  function susleriUret(harita, tema) {
+    const susler = [];
+    for (let x = 3; x < harita[0].length - 4; x += 7) {
+      if (harita[13][x] !== "#" || harita[12][x] !== ".") continue;
+      const magara = tema === "magara";
+      susler.push({
+        x: x * T + ((x * 37) % 9),
+        tur: magara ? (x % 3 === 0 ? "kristal" : "mantar") : (x % 3 === 0 ? "cali" : "cicek"),
+        renk: (magara ? ["#4fd1c5", "#9f7aea", "#f687b3", "#63b3ed"] : ["#ff5fa2", "#ffd23b", "#ffffff", "#7fc8ff"])[x % 4],
+      });
+    }
+    return susler;
   }
 
-  // Zemin uzerindeki suslemeler (calilar ve cicekler)
-  const SUSLER = [];
-  for (let x = 3; x < 155; x += 7) {
-    if ([22, 23, 24, 47, 48, 49, 78, 79, 80, 110, 111, 112, 131, 132, 133].includes(x)) continue;
-    SUSLER.push({ x: x * T + ((x * 37) % 9), tur: x % 3 === 0 ? "cali" : "cicek", renk: ["#ff5fa2", "#ffd23b", "#ffffff", "#7fc8ff"][x % 4] });
+  // Gokyuzunde suzulen renkli kuslar
+  const KUSLAR = [
+    { renk: "#ff4d4d", kanat: "#c81e1e", y: 26, hiz: 0.55, bas: 0, faz: 0 },
+    { renk: "#3da5ff", kanat: "#1f6fc2", y: 58, hiz: 0.4, bas: 120, faz: 1.7 },
+    { renk: "#ffd23b", kanat: "#d19a00", y: 40, hiz: 0.7, bas: 230, faz: 3.1 },
+    { renk: "#4cd964", kanat: "#239a3a", y: 72, hiz: 0.48, bas: 300, faz: 4.4 },
+    { renk: "#ff6bd6", kanat: "#c2329f", y: 18, hiz: 0.62, bas: 60, faz: 2.3 },
+    { renk: "#ff9f1a", kanat: "#c46d00", y: 88, hiz: 0.36, bas: 190, faz: 5.2 },
+  ];
+
+  function kuslariCiz(sayi, kam, zaman) {
+    const yol = G + 60;
+    for (let i = 0; i < sayi; i++) {
+      const k = KUSLAR[i];
+      const x = (((k.bas + zaman * k.hiz - kam * 0.15) % yol) + yol) % yol - 30;
+      const y = k.y + Math.sin(zaman * 0.04 + k.faz) * 5;
+      const cirpma = Math.sin(zaman * 0.3 + k.faz);
+      // arka kanat
+      ctx.fillStyle = k.kanat;
+      ctx.beginPath(); ctx.moveTo(x - 1, y - 1); ctx.lineTo(x - 6, y - 1 - cirpma * 6); ctx.lineTo(x + 2, y - 1); ctx.fill();
+      // govde ve bas
+      ctx.fillStyle = k.renk;
+      ctx.beginPath(); ctx.ellipse(x, y, 5.5, 3.5, 0, 0, Math.PI * 2); ctx.arc(x + 5, y - 2, 2.8, 0, Math.PI * 2); ctx.fill();
+      // kuyruk
+      ctx.beginPath(); ctx.moveTo(x - 4, y); ctx.lineTo(x - 9, y - 3); ctx.lineTo(x - 9, y + 2); ctx.fill();
+      // gaga ve goz
+      ctx.fillStyle = "#ff9500";
+      ctx.beginPath(); ctx.moveTo(x + 7.5, y - 2.8); ctx.lineTo(x + 10.5, y - 1.8); ctx.lineTo(x + 7.5, y - 0.8); ctx.fill();
+      ctx.fillStyle = "#000";
+      ctx.fillRect(x + 5.5, y - 3, 1.2, 1.2);
+      // on kanat
+      ctx.fillStyle = k.kanat;
+      ctx.beginPath(); ctx.moveTo(x - 2, y); ctx.lineTo(x + 1, y - cirpma * 8); ctx.lineTo(x + 3, y); ctx.fill();
+    }
   }
 
   const zipzip = {
@@ -315,16 +425,27 @@
     muzik: ZIPZIP_MUZIK,
     zaman: 0,
 
+    // Durum "bolumBitti" ise sonraki bolum, "yandi" ise ayni bolum bastan, aksi halde yeni oyun
     baslat() {
-      this.harita = haritaUret();
-      this.altin = 0;
+      if (this.durum === "bolumBitti") {
+        this.bolum++;
+        this.bolumBasiAltin = this.altin;
+      } else if (this.durum !== "yandi") {
+        this.bolum = 0;
+        this.bolumBasiAltin = 0;
+      }
+      const bolum = BOLUMLER[this.bolum];
+      this.tema = TEMALAR[bolum.tema];
+      this.harita = bolum.harita.map((satir) => satir.split(""));
+      this.susler = susleriUret(this.harita, bolum.tema);
+      this.altin = this.bolumBasiAltin;
       this.zaman = 0;
       this.parcaciklar = [];
       this.dusmanlar = [];
       for (let y = 0; y < this.harita.length; y++)
         for (let x = 0; x < this.harita[0].length; x++)
           if (this.harita[y][x] === "e") {
-            this.dusmanlar.push({ x: x * T, y: y * T + 4, g: 14, y2: 12, vx: -0.6, canli: true, ezik: 0 });
+            this.dusmanlar.push({ x: x * T, y: y * T + 4, g: 14, y2: 12, vx: -bolum.dusmanHizi, canli: true, ezik: 0 });
             this.harita[y][x] = ".";
           }
       this.oyuncu = { x: 2 * T, y: 10 * T, g: 12, y2: 14, vx: 0, vy: 0, yerde: false, bakis: 1, adim: 0 };
@@ -347,7 +468,14 @@
     bitir(durum) {
       this.durum = durum;
       Ses.muzikDurdur();
-      Ses.efekt(durum === "kazandi" ? "kazandi" : "yandi");
+      Ses.efekt(durum === "yandi" ? "yandi" : "kazandi");
+    },
+
+    bayragaUlasti() {
+      if (this.bolum < BOLUMLER.length - 1) { this.bitir("bolumBitti"); return; }
+      this.yeniRekor = this.altin > parseInt(guvenliOku("zipzip_rekor", "0"), 10);
+      if (this.yeniRekor) guvenliYaz("zipzip_rekor", String(this.altin));
+      this.bitir("kazandi");
     },
 
     kati(px, py) {
@@ -403,7 +531,7 @@
           Ses.efekt("altin");
           this.parcacik(tx * T + 8, ty * T, "+1", "#ffe14d");
         }
-        if (this.harita[ty] && this.harita[ty][tx] === "F") { this.bitir("kazandi"); return; }
+        if (this.harita[ty] && this.harita[ty][tx] === "F") { this.bayragaUlasti(); return; }
       }
 
       for (const d of this.dusmanlar) {
@@ -478,55 +606,64 @@
     },
 
     cizDusman(d) {
-      // Somurtkan mor jole
+      // Somurtkan jole (rengi bolume gore degisir)
+      const [renk, parlak, kas] = this.tema.dusman;
       const titresim = Math.sin(this.zaman * 0.25 + d.x) * 1.2;
       const cx = d.x + d.g / 2, alt = d.y + d.y2;
       if (d.ezik) {
-        ctx.fillStyle = "#9b4dff";
+        ctx.fillStyle = renk;
         ctx.beginPath(); ctx.ellipse(cx, alt - 2, 9, 2.5, 0, 0, Math.PI * 2); ctx.fill();
         return;
       }
-      ctx.fillStyle = "#9b4dff";
+      ctx.fillStyle = renk;
       ctx.beginPath(); ctx.ellipse(cx, alt - 6, 8 + titresim * 0.5, 7 - titresim * 0.5, 0, Math.PI, 0); ctx.lineTo(cx + 8, alt); ctx.lineTo(cx - 8, alt); ctx.fill();
-      ctx.fillStyle = "#c79bff";
+      ctx.fillStyle = parlak;
       ctx.fillRect(cx - 5, alt - 11, 3, 2);
       ctx.fillStyle = "#fff";
       ctx.fillRect(cx - 5, alt - 8, 3, 3); ctx.fillRect(cx + 2, alt - 8, 3, 3);
       ctx.fillStyle = "#000";
       ctx.fillRect(cx - 4 + Math.sign(d.vx), alt - 7, 1.5, 2); ctx.fillRect(cx + 3 + Math.sign(d.vx), alt - 7, 1.5, 2);
-      ctx.strokeStyle = "#3a0a6b"; ctx.lineWidth = 1.2;
+      ctx.strokeStyle = kas; ctx.lineWidth = 1.2;
       ctx.beginPath(); ctx.moveTo(cx - 6, alt - 10); ctx.lineTo(cx - 2, alt - 9); ctx.moveTo(cx + 6, alt - 10); ctx.lineTo(cx + 2, alt - 9); ctx.stroke();
     },
 
     ciz() {
+      const tema = this.harita ? this.tema : TEMALAR.cayir;
+      const zaman = this.harita ? this.zaman : performance.now() / 16;
       const grad = ctx.createLinearGradient(0, 0, 0, Y);
-      grad.addColorStop(0, "#5ec8ff");
-      grad.addColorStop(1, "#d8f3ff");
+      grad.addColorStop(0, tema.gok[0]);
+      grad.addColorStop(1, tema.gok[1]);
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, G, Y);
-      // gunes
-      ctx.fillStyle = "#fff3a0";
-      ctx.beginPath(); ctx.arc(270, 40, 18, 0, Math.PI * 2); ctx.fill();
+      if (tema.gunes) {
+        ctx.fillStyle = tema.gunes;
+        ctx.beginPath(); ctx.arc(270, 40, 18, 0, Math.PI * 2); ctx.fill();
+      }
       // uzak tepeler (paralaks)
       const kam = this.kamera || 0;
-      ctx.fillStyle = "#a6e3a1";
-      for (let i = -1; i < 6; i++) {
-        const x = i * 140 - (kam * 0.2) % 140;
-        ctx.beginPath(); ctx.ellipse(x + 70, Y - 26, 80, 46, 0, Math.PI, 0); ctx.fill();
-      }
-      ctx.fillStyle = "#7fd17a";
-      for (let i = -1; i < 7; i++) {
-        const x = i * 110 - (kam * 0.35) % 110;
-        ctx.beginPath(); ctx.ellipse(x + 30, Y - 26, 46, 30, 0, Math.PI, 0); ctx.fill();
+      if (tema.tepeler) {
+        ctx.fillStyle = tema.tepeler[0];
+        for (let i = -1; i < 6; i++) {
+          const x = i * 140 - (kam * 0.2) % 140;
+          ctx.beginPath(); ctx.ellipse(x + 70, Y - 26, 80, 46, 0, Math.PI, 0); ctx.fill();
+        }
+        ctx.fillStyle = tema.tepeler[1];
+        for (let i = -1; i < 7; i++) {
+          const x = i * 110 - (kam * 0.35) % 110;
+          ctx.beginPath(); ctx.ellipse(x + 30, Y - 26, 46, 30, 0, Math.PI, 0); ctx.fill();
+        }
       }
       // bulutlar
-      ctx.fillStyle = "#fff";
-      for (let i = -1; i < 5; i++) {
-        const x = i * 150 - (kam * 0.1 + this.zaman * 0.15) % 150, y = 30 + (i % 2) * 22;
-        ctx.beginPath();
-        ctx.arc(x + 20, y, 9, 0, Math.PI * 2); ctx.arc(x + 32, y - 5, 12, 0, Math.PI * 2); ctx.arc(x + 46, y, 9, 0, Math.PI * 2);
-        ctx.fill();
+      if (tema.bulut) {
+        ctx.fillStyle = tema.bulut;
+        for (let i = -1; i < 5; i++) {
+          const x = i * 150 - (kam * 0.1 + zaman * 0.15) % 150, y = 30 + (i % 2) * 22;
+          ctx.beginPath();
+          ctx.arc(x + 20, y, 9, 0, Math.PI * 2); ctx.arc(x + 32, y - 5, 12, 0, Math.PI * 2); ctx.arc(x + 46, y, 9, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
+      kuslariCiz(tema.kus, kam, zaman);
       if (!this.harita) {
         kaplama("🐹 ZIPZIP", "Başlamak için tıkla ya da SPACE", "Pıtır'la maceraya hazır mısın?");
         // Pitir baslangic ekraninda zipliyor
@@ -541,9 +678,19 @@
       ctx.translate(-Math.round(kam), 0);
       const bas = Math.floor(kam / T), son = bas + G / T + 2;
       // calilar ve cicekler
-      for (const s of SUSLER) {
+      for (const s of this.susler) {
         if (s.x < kam - 30 || s.x > kam + G + 30) continue;
-        if (s.tur === "cali") {
+        if (s.tur === "kristal") {
+          ctx.fillStyle = s.renk;
+          ctx.beginPath(); ctx.moveTo(s.x, 208); ctx.lineTo(s.x + 3, 196); ctx.lineTo(s.x + 6, 208); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(s.x + 5, 208); ctx.lineTo(s.x + 9, 200); ctx.lineTo(s.x + 12, 208); ctx.fill();
+          ctx.fillStyle = "#ffffff88"; ctx.fillRect(s.x + 2, 200, 1, 5);
+        } else if (s.tur === "mantar") {
+          ctx.fillStyle = "#e8dcc8"; ctx.fillRect(s.x + 2, 202, 3, 6);
+          ctx.fillStyle = s.renk;
+          ctx.beginPath(); ctx.ellipse(s.x + 3.5, 202, 6, 4, 0, Math.PI, 0); ctx.fill();
+          ctx.fillStyle = "#fff"; ctx.fillRect(s.x + 1, 199, 2, 1.5); ctx.fillRect(s.x + 5, 200, 1.5, 1.5);
+        } else if (s.tur === "cali") {
           ctx.fillStyle = "#3fb54a";
           ctx.beginPath(); ctx.arc(s.x, 206, 8, 0, Math.PI * 2); ctx.arc(s.x + 9, 203, 10, 0, Math.PI * 2); ctx.arc(s.x + 19, 206, 8, 0, Math.PI * 2); ctx.fill();
         } else {
@@ -558,21 +705,35 @@
           const c = this.harita[y][x], px = x * T, py = y * T;
           if (c === "#") {
             const ustte = !this.harita[y - 1] || this.harita[y - 1][x] !== "#";
-            ctx.fillStyle = "#b8743a";
+            ctx.fillStyle = tema.toprak[0];
             ctx.fillRect(px, py, T, T);
-            ctx.fillStyle = "#a0622d";
+            ctx.fillStyle = tema.toprak[1];
             ctx.fillRect(px + ((x * 5) % 10), py + 8 + ((x * 3) % 5), 3, 2);
-            if (ustte) {
-              ctx.fillStyle = "#4ccf4c";
+            if (y === 0) {
+              // magara tavanindan sarkan sarkitlar
+              if (x % 3 === 0) {
+                const boy = 6 + ((x * 7) % 9);
+                ctx.fillStyle = tema.toprak[0];
+                ctx.beginPath(); ctx.moveTo(px + 2, py + T); ctx.lineTo(px + 8, py + T + boy); ctx.lineTo(px + 14, py + T); ctx.fill();
+              }
+            } else if (ustte) {
+              ctx.fillStyle = tema.cim[0];
               ctx.fillRect(px, py, T, 5);
-              ctx.fillStyle = "#3aa83a";
+              ctx.fillStyle = tema.cim[1];
               ctx.fillRect(px, py + 5, T, 2);
-              ctx.fillStyle = "#7cf07c";
+              ctx.fillStyle = tema.cim[2];
               ctx.fillRect(px + 2, py + 1, 3, 1);
             }
+          } else if (c === "B" && !tema.blok) {
+            // pamuk gibi bulut platformlar
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath(); ctx.arc(px + 4, py + 7, 5, 0, Math.PI * 2); ctx.arc(px + 12, py + 6, 6, 0, Math.PI * 2); ctx.fill();
+            ctx.fillRect(px, py + 7, T, 6);
+            ctx.fillStyle = "#cfe6ff";
+            ctx.fillRect(px, py + 11, T, 2);
           } else if (c === "B") {
-            // seker renkli bloklar
-            ctx.fillStyle = (x % 2) ? "#ff7fb0" : "#ffa94d";
+            // seker renkli bloklar (magarada kristal renkli)
+            ctx.fillStyle = tema.blok[x % 2];
             ctx.fillRect(px, py, T, T);
             ctx.fillStyle = "#ffffff99";
             ctx.fillRect(px + 2, py + 2, T - 4, 2);
@@ -623,9 +784,24 @@
       ctx.fillStyle = "#fff";
       ctx.fillText("x " + this.altin, 26, 19);
 
-      skorYazi.textContent = "Altın: " + this.altin;
-      if (this.durum === "yandi") kaplama("AH, OLAMAZ!", "Tekrar denemek için SPACE", "Pıtır pes etmez, bir daha!");
-      if (this.durum === "kazandi") kaplama("🏁 BAŞARDIN!", this.altin + " altın · Tekrar için SPACE", "Pıtır çok mutlu! 🧡");
+      const bolum = BOLUMLER[this.bolum];
+      const sira = "Bölüm " + (this.bolum + 1) + "/" + BOLUMLER.length;
+      ctx.fillStyle = "#00000055";
+      ctx.fillRect(G - 92, 6, 86, 18);
+      ctx.fillStyle = "#fff";
+      ctx.fillText(sira, G - 86, 19);
+      // bolum basinda adini goster
+      if (this.durum === "oynuyor" && this.zaman < 110) yaziOrtala(sira + ": " + bolum.ad, 52, 14, "#ffe14d");
+
+      skorYazi.textContent = sira + " · " + bolum.ad + " · Altın: " + this.altin;
+      if (this.durum === "yandi") kaplama("AH, OLAMAZ!", sira + " baştan · SPACE", "Pıtır pes etmez, bir daha!");
+      if (this.durum === "bolumBitti") {
+        kaplama("🏁 BÖLÜM " + (this.bolum + 1) + " TAMAM!", "Sıradaki: " + BOLUMLER[this.bolum + 1].ad + " · SPACE", this.altin + " altın topladın");
+      }
+      if (this.durum === "kazandi") {
+        const rekor = guvenliOku("zipzip_rekor", "0");
+        kaplama("🏆 PITIR EVE DÖNDÜ!", this.altin + " altın · Rekor: " + rekor + " · SPACE", this.yeniRekor ? "YENİ REKOR! 🎉" : "3 bölümü de bitirdin! 🧡");
+      }
     },
 
     tus(k) {
