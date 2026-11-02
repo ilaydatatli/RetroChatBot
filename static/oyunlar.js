@@ -448,6 +448,8 @@
             this.dusmanlar.push({ x: x * T, y: y * T + 4, g: 14, y2: 12, vx: -bolum.dusmanHizi, canli: true, ezik: 0 });
             this.harita[y][x] = ".";
           }
+      // Bayrak direginin x konumu: bu cizgiyi gecen (hangi yukseklikte olursa olsun) bolumu bitirir
+      this.bayrakX = bolum.harita[12].indexOf("F") * T + 8;
       this.oyuncu = { x: 2 * T, y: 10 * T, g: 12, y2: 14, vx: 0, vy: 0, yerde: false, bakis: 1, adim: 0 };
       this.kamera = 0;
       this.durum = "oynuyor";
@@ -480,7 +482,9 @@
 
     kati(px, py) {
       const tx = Math.floor(px / T), ty = Math.floor(py / T);
-      if (ty < 0 || tx < 0 || tx >= this.harita[0].length) return tx < 0;
+      // Haritanin iki yani gorunmez duvar: Pitir kenardan disari yuruyemez
+      if (tx < 0 || tx >= this.harita[0].length) return true;
+      if (ty < 0) return false;
       if (ty >= this.harita.length) return false;
       const c = this.harita[ty][tx];
       return c === "#" || c === "B";
@@ -531,7 +535,6 @@
           Ses.efekt("altin");
           this.parcacik(tx * T + 8, ty * T, "+1", "#ffe14d");
         }
-        if (this.harita[ty] && this.harita[ty][tx] === "F") { this.bayragaUlasti(); return; }
       }
 
       for (const d of this.dusmanlar) {
@@ -551,6 +554,8 @@
           } else { this.bitir("yandi"); return; }
         }
       }
+
+      if (o.x + o.g / 2 >= this.bayrakX) { this.bayragaUlasti(); return; }
 
       this.parcaciklar.forEach((p) => { p.y -= 0.6; p.omur--; });
       this.parcaciklar = this.parcaciklar.filter((p) => p.omur > 0);
