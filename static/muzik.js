@@ -296,6 +296,15 @@ const SARKILAR = {
     ["Sabrina Carpenter", "Manchild"],
   ],
   2026: [],
+  2030: [
+    ["Lumen Vale", "Glasshouse Heart (hayal)"],
+    ["KAIRO", "Signal Lost (hayal)"],
+    ["Mavi Frekans", "Gece Yarısı Treni (hayal)"],
+    ["The Paper Satellites", "Low Orbit Love (hayal)"],
+    ["Nova Reyes", "Afterglow Protocol (hayal)"],
+    ["Juno & The Static", "Run It Back (hayal)"],
+    ["Seraphine Kim", "Electric Bloom (hayal)"],
+  ],
   2035: [
     ["Neon Kuşlar", "Holografik Aşk (hayal)"],
     ["Yörünge 9", "Ay'da Bir Hafta Sonu (hayal)"],
